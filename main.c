@@ -1,16 +1,41 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
+#define N 16
 
 struct Node
 {
     char data;         //佇列資料的宣告
     struct Node *next; //佇列中用來指向下一個節點
 };
-typedef struct Node Stack_Node;   //定義堆疊中節點的新形態
-typedef Stack_Node *Linked_Stack; //定義串列佇列的新形態
-Linked_Stack front = NULL;        //指向佇列頂端的指標
-Linked_Stack rear = NULL;         //指向佇列尾端的指標
+typedef struct Node Queue_Node;   //定義堆疊中節點的新形態
+typedef Queue_Node *Linked_Queue; //定義串列佇列的新形態
+Linked_Queue front = NULL;        //指向佇列頂端的指標
+Linked_Queue rear = NULL;         //指向佇列尾端的指標
 
+struct Network
+{
+    char dev[N];
+    char dhcp[N];
+    char addr[N];
+    char mask[N];
+    char getway[N];
+    char dns1[N];
+    char dns2[N];
+    char wan[N];
+    struct Network *next;
+};
+typedef struct Network Net_Node;
+typedef Net_Node *Linked_Net;
+Linked_Net first = NULL;
+Linked_Net temp = NULL;
+
+Linked_Net new_net();
+Linked_Net push_net(Linked_Net);
+void print_net(Linked_Net);
+void free_net(Linked_Net);
+void worker(int, Linked_Net, char[]);
 int isEmpty();
 void push(char);
 char pop();
@@ -19,6 +44,8 @@ int main()
 {
     FILE *fp;
     char ch;
+    char cookie[N];
+    int i = 0, count = 1;
 
     fp = fopen("addr.txt", "r");
 
@@ -28,57 +55,181 @@ int main()
     }
     else
     {
+        Linked_Net new_add_net;
+        new_add_net = new_net();
         //EOF = end of file
         while ((ch = getc(fp)) != EOF)
         {
-            if (ch == '\r')
+            if (ch == ',' || ch == '\n' || ch == '\r')
             {
-                printf("\n---------------------------------------------------------------");
-            }
-            else if (ch == ',')
-            {
-                while (!isEmpty())
+                i = 0;
+
+                if (ch == ',' || ch == '\r')
                 {
-                    printf("%c", pop());
+                    while (!isEmpty())
+                    {
+                        cookie[i] = pop();
+                        i++;
+                    }
+
+                    //printf("%s", cookie);
+                    worker(count, new_add_net, cookie);
+                    //printf(" | ");
+                    count++;
                 }
-                printf(" | ");
+                else
+                {
+                    //printf("\n");
+                    new_add_net = push_net(new_add_net);
+                    count = 1;
+                    //break;
+                }
             }
             else
             {
                 push(ch);
-                //printf("%c", pop());
+                //pop();
+            }
+
+            while (i >= 0)
+            {
+                cookie[i] = '\0';
+                i--;
             }
         }
 
-        printf("\n");
+        i = 0;
+        while (!isEmpty())
+        {
+            cookie[i] = pop();
+            i++;
+        }
+
+        //printf("%s", cookie);
+        worker(count, new_add_net, cookie);
+
+        //printf("\n\n");
+        print_net(first);
+        free_net(first);
     }
 
     fclose(fp);
     return 0;
+}
 
-    //dev | dhcp | ip addr | net mask | getway | dns1 | dns2 | wan
+/*新增Linked_Net*/
+Linked_Net push_net(Linked_Net n)
+{
+    if (first == NULL)
+    {
+        first = n;
+        n = new_net();
+        first->next = n;
+        n->next = NULL;
+    }
+    else
+    {
+        temp = n;
+        n = new_net();
+        temp->next = n;
+        n->next = NULL;
+    }
+
+    return n;
+}
+
+/*釋放net取用過的記憶體空間*/
+void free_net(Linked_Net n)
+{
+    if (n != NULL)
+    {
+        //printf("釋放記憶體空間!!!\n");
+        if (n->next != NULL)
+            free_net(n->next);
+        free(n);
+    }
+}
+
+/*印出net parser後的值*/
+void print_net(Linked_Net n)
+{
+    if (n != NULL)
+    {
+        printf(" --------------------------------\n");
+        printf(" | dev    :%20s |\n", n->dev);
+        printf(" | dhcp   :%20s |\n", n->dhcp);
+        printf(" | addr   :%20s |\n", n->addr);
+        printf(" | mask   :%20s |\n", n->mask);
+        printf(" | getway :%20s |\n", n->getway);
+        printf(" | dns1   :%20s |\n", n->dns1);
+        printf(" | dns2   :%20s |\n", n->dns2);
+        printf(" | wan    :%20s |\n", n->wan);
+
+        if (n->next != NULL)
+            print_net(n->next);
+        else
+            printf(" --------------------------------\n");
+    }
+}
+
+/*創建新的net*/
+Linked_Net new_net()
+{
+    Linked_Net new_net;
+    new_net = (Linked_Net)malloc(sizeof(Net_Node));
+    return new_net;
+}
+
+/*將佇列中的資料輸出存放*/
+void worker(int i, Linked_Net net, char c[])
+{
+    //printf("[%d]", i);
+    //dev | dhcp | ip addr | mask | getway | dns1 | dns2 | wan
+    for (int j = 0; j < strlen(c); j++)
+    {
+        switch (i)
+        {
+        case 1:
+            net->dev[j] = *(c + j);
+            break;
+        case 2:
+            net->dhcp[j] = *(c + j);
+            break;
+        case 3:
+            net->addr[j] = *(c + j);
+            break;
+        case 4:
+            net->mask[j] = *(c + j);
+            break;
+        case 5:
+            net->getway[j] = *(c + j);
+            break;
+        case 6:
+            net->dns1[j] = *(c + j);
+            break;
+        case 7:
+            net->dns2[j] = *(c + j);
+            break;
+        case 8:
+            net->wan[j] = *(c + j);
+            break;
+        }
+    }
 }
 
 /*判斷是否為空佇列*/
 int isEmpty()
 {
-    if (front == NULL)
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+    return (front == NULL) ? 1 : 0;
 }
 
 /*將指定的資料存入佇列*/
 void push(char data)
 {
-    Linked_Stack new_add_node; //新加入節點的指標
+    Linked_Queue new_add_node; //新加入節點的指標
 
     /*配置新節點的記憶體*/
-    new_add_node = (Linked_Stack)malloc(sizeof(Stack_Node));
+    new_add_node = (Linked_Queue)malloc(sizeof(Queue_Node));
     new_add_node->data = data; //將傳入的值設為節點的內容
     new_add_node->next = NULL; //將新節點指向佇列的點端
 
@@ -97,7 +248,7 @@ void push(char data)
 /*從佇列取出資料*/
 char pop()
 {
-    Linked_Stack ptr_f = front; //指向佇列頭端的指標
+    Linked_Queue ptr_f = front; //指向佇列頂端的指標
     char temp;
 
     if (ptr_f != NULL)
