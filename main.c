@@ -2,17 +2,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#define N 16
+#define STR_LEN 16
 
 struct Node
 {
     char data;         //佇列資料的宣告
     struct Node *next; //佇列中用來指向下一個節點
-};
-typedef struct Node Queue_Node;   //定義堆疊中節點的新形態
-typedef Queue_Node *Linked_Queue; //定義串列佇列的新形態
-Linked_Queue front = NULL;        //指向佇列頂端的指標
-Linked_Queue rear = NULL;         //指向佇列尾端的指標
+} Queue_Node;
+
+Queue_Node *front = NULL;        //指向佇列頂端的指標
+Queue_Node *rear = NULL;         //指向佇列尾端的指標
 
 struct Network
 {
@@ -33,89 +32,6 @@ Linked_Net temp = NULL;
 
 Linked_Net new_net();
 Linked_Net push_net(Linked_Net);
-void print_net(Linked_Net);
-void free_net(Linked_Net);
-void worker(int, Linked_Net, char[]);
-int isEmpty();
-void push(char);
-char pop();
-
-int main()
-{
-    FILE *fp;
-    char ch;
-    char cookie[N];
-    int i = 0, count = 1;
-
-    fp = fopen("addr.txt", "r");
-
-    if (fp == NULL)
-    {
-        printf("open file error!!\n");
-    }
-    else
-    {
-        Linked_Net new_add_net;
-        new_add_net = new_net();
-        //EOF = end of file
-        while ((ch = getc(fp)) != EOF)
-        {
-            if (ch == ',' || ch == '\n' || ch == '\r')
-            {
-                i = 0;
-
-                if (ch == ',' || ch == '\r')
-                {
-                    while (!isEmpty())
-                    {
-                        cookie[i] = pop();
-                        i++;
-                    }
-
-                    //printf("%s", cookie);
-                    worker(count, new_add_net, cookie);
-                    //printf(" | ");
-                    count++;
-                }
-                else
-                {
-                    //printf("\n");
-                    new_add_net = push_net(new_add_net);
-                    count = 1;
-                    //break;
-                }
-            }
-            else
-            {
-                push(ch);
-                //pop();
-            }
-
-            while (i >= 0)
-            {
-                cookie[i] = '\0';
-                i--;
-            }
-        }
-
-        i = 0;
-        while (!isEmpty())
-        {
-            cookie[i] = pop();
-            i++;
-        }
-
-        //printf("%s", cookie);
-        worker(count, new_add_net, cookie);
-
-        //printf("\n\n");
-        print_net(first);
-        free_net(first);
-    }
-
-    fclose(fp);
-    return 0;
-}
 
 /*新增Linked_Net*/
 Linked_Net push_net(Linked_Net n)
@@ -181,7 +97,7 @@ Linked_Net new_net()
 }
 
 /*將佇列中的資料輸出存放*/
-void worker(int i, Linked_Net net, char c[])
+void worker(int i, Linked_Net net, char *c)
 {
     //printf("[%d]", i);
     //dev | dhcp | ip addr | mask | getway | dns1 | dns2 | wan
@@ -190,7 +106,7 @@ void worker(int i, Linked_Net net, char c[])
         switch (i)
         {
         case 1:
-            net->dev[j] = *(c + j);
+            net->dev[j] = c[j];
             break;
         case 2:
             net->dhcp[j] = *(c + j);
@@ -212,6 +128,8 @@ void worker(int i, Linked_Net net, char c[])
             break;
         case 8:
             net->wan[j] = *(c + j);
+            break;
+        default:
             break;
         }
     }
@@ -259,3 +177,82 @@ char pop()
     free(ptr_f);
     return temp;
 }
+
+int main(int arcg, char *argv[])
+{
+   
+    char ch;
+    char cookie[N];
+    int i = 0, count = 1;
+
+     FILE *fp = fopen("addr.txt", "r");
+
+    if (fp == NULL)
+    {
+        printf("open file error!!\n");
+        return 0;
+    }
+
+    Linked_Net new_add_net;
+    new_add_net = new_net();
+    //EOF = end of file
+    while ((ch = getc(fp)) != EOF)
+    {
+        if (ch == ',' || ch == '\n' || ch == '\r')
+        {
+            i = 0;
+
+            if (ch == ',' || ch == '\r')
+            {
+                while (!isEmpty())
+                {
+                    cookie[i] = pop();
+                    i++;
+                }
+
+                //printf("%s", cookie);
+                worker(count, new_add_net, cookie);
+                //printf(" | ");
+                count++;
+            }
+            else
+            {
+                //printf("\n");
+                new_add_net = push_net(new_add_net);
+                count = 1;
+                //break;
+            }
+        }
+        else
+        {
+            push(ch);
+            //pop();
+        }
+
+        while (i >= 0)
+        {
+            cookie[i] = '\0';
+            i--;
+        }
+    }
+
+    i = 0;
+    while (!isEmpty())
+    {
+        cookie[i] = pop();
+        i++;
+    }
+
+    //printf("%s", cookie);
+    worker(count, new_add_net, cookie);
+
+    //printf("\n\n");
+    print_net(first);
+    free_net(first);
+
+
+    fclose(fp);
+    return 0;
+}
+
+
